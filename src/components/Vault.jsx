@@ -102,12 +102,6 @@ export default function Vault() {
                 )
               })}
             </motion.div>
-            <div className="ring-center">
-              <span className="ring-center-glyph">
-                <Eye size={40} />
-              </span>
-              <span className="ring-center-text">ARSENAL</span>
-            </div>
           </div>
 
           <div className="vault-hint">SCROLL TO ROTATE — 360°</div>

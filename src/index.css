@@ -424,9 +424,6 @@ section { position: relative; padding: 110px 0; }
 }
 .ring-card-label { font-family: var(--mono); font-weight: 700; font-size: 0.95rem; letter-spacing: 0.1em; }
 .ring-card-sub { font-size: 0.8rem; color: var(--muted); line-height: 1.45; }
-.ring-center { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); text-align: center; pointer-events: none; z-index: 0; }
-.ring-center-glyph { color: var(--accent); display: block; filter: drop-shadow(0 0 18px rgba(0, 255, 136, 0.8)); animation: float-y 3s ease-in-out infinite; }
-.ring-center-text { font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.4em; color: var(--muted); display: block; margin-top: 10px; }
 .vault-hint {
   text-align: center; font-family: var(--mono); font-size: 0.72rem;
   letter-spacing: 0.3em; color: var(--muted); position: relative; z-index: 3;

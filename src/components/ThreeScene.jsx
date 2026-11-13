@@ -1,105 +1,15 @@
 import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
+import { SKULL_TEXTURE } from '../assets/skullTexture'
 
 /**
  * Full-screen WebGL hero scene.
- * Centerpiece: a 3D GHOST skull — extruded silhouette, neon edge lines,
- * glowing green eyes — floating behind the headline. Around it: a smaller
- * wireframe torus knot, a dim particle field, orbiting shards and holograms.
- * Camera dives + world rotates as you SCROLL; skull + camera follow the MOUSE.
+ * Centerpiece: the real GHOST face — a photorealistic skull-mask portrait
+ * on a plane with additive blending (black = transparent), so the mask
+ * floats out of the dark like a hologram. It turns toward you with scroll
+ * and follows the mouse. Around it: a dim particle field and hologram texts.
  * Pauses when off-screen / tab hidden; reduced counts on mobile.
  */
-
-function buildSkull() {
-  const group = new THREE.Group()
-
-  // --- skull silhouette (front view), extruded ---
-  const right = [
-    [0, 1.55], [0.55, 1.5], [0.95, 1.25], [1.12, 0.85], [1.1, 0.45],
-    [0.98, 0.05], [0.85, -0.35], [0.72, -0.7], [0.66, -1.05],
-    [0.55, -1.28], [0.3, -1.35], [0, -1.35],
-  ]
-  const left = right
-    .slice()
-    .reverse()
-    .map(([x, y]) => [-x, y])
-  const loop = [...right, ...left.slice(1)]
-  const shape = new THREE.Shape()
-  shape.splineThru(loop.map(([x, y]) => new THREE.Vector2(x, y)))
-  shape.closePath()
-
-  const geo = new THREE.ExtrudeGeometry(shape, {
-    depth: 0.42,
-    bevelEnabled: true,
-    bevelThickness: 0.05,
-    bevelSize: 0.045,
-    bevelSegments: 2,
-    curveSegments: 24,
-    steps: 1,
-  })
-  geo.center()
-  const skull = new THREE.Mesh(
-    geo,
-    new THREE.MeshStandardMaterial({
-      color: 0x0b100d,
-      roughness: 0.42,
-      metalness: 0.35,
-      emissive: 0x00ff88,
-      emissiveIntensity: 0.05,
-      flatShading: true,
-    }),
-  )
-  group.add(skull)
-
-  // neon outline
-  const edges = new THREE.LineSegments(
-    new THREE.EdgesGeometry(geo, 24),
-    new THREE.LineBasicMaterial({ color: 0x00ff88, transparent: true, opacity: 0.85 }),
-  )
-  group.add(edges)
-
-  // --- eye sockets + glowing eyes ---
-  const socketMat = new THREE.MeshStandardMaterial({ color: 0x020403, roughness: 1 })
-  const eyeMat = new THREE.MeshBasicMaterial({ color: 0x00ff88 })
-  const eyes = []
-  for (const sx of [-1, 1]) {
-    const socket = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 18), socketMat)
-    socket.scale.set(0.34, 0.24, 0.12)
-    socket.position.set(sx * 0.42, 0.42, 0.2)
-    group.add(socket)
-    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.085, 16, 12), eyeMat)
-    eye.position.set(sx * 0.42, 0.42, 0.3)
-    group.add(eye)
-    eyes.push(eye)
-  }
-
-  // --- nose (inverted pyramid) ---
-  const nose = new THREE.Mesh(new THREE.ConeGeometry(0.13, 0.3, 4), socketMat)
-  nose.rotation.x = Math.PI
-  nose.rotation.y = Math.PI / 4
-  nose.scale.z = 0.5
-  nose.position.set(0, -0.14, 0.26)
-  group.add(nose)
-
-  // --- teeth + mouth line ---
-  const toothMat = new THREE.MeshStandardMaterial({ color: 0xb8d8c2, roughness: 0.6 })
-  for (let i = -2; i <= 2; i++) {
-    const tooth = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.3, 0.04), toothMat)
-    tooth.position.set(i * 0.2, -1.02, 0.28)
-    group.add(tooth)
-  }
-  const mouth = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.035, 0.02), socketMat)
-  mouth.position.set(0, -0.84, 0.28)
-  group.add(mouth)
-
-  // --- face light (makes the eyes feel alive) ---
-  const faceLight = new THREE.PointLight(0x00ff88, 6, 5, 1.8)
-  faceLight.position.set(0, 0.4, 1.4)
-  group.add(faceLight)
-
-  return { group, eyes, faceLight }
-}
-
 export default function ThreeScene() {
   const canvasRef = useRef(null)
 
@@ -136,78 +46,60 @@ export default function ThreeScene() {
     )
     camera.position.set(0, 0, 9)
 
-    // ---------- lights ----------
-    scene.add(new THREE.AmbientLight(0xffffff, 0.25))
-    const keyLight = new THREE.PointLight(0x00ff88, 60, 30, 1.6)
-    keyLight.position.set(4, 3, 5)
-    scene.add(keyLight)
-    const rimLight = new THREE.PointLight(0x2d8cff, 25, 30, 1.8)
-    rimLight.position.set(-5, -2, 3)
-    scene.add(rimLight)
-
     const world = new THREE.Group()
     scene.add(world)
 
-    // ---------- GHOST skull (centerpiece) ----------
-    const skull = buildSkull()
+    // ---------- GHOST face (photorealistic mask, additive = hologram) ----------
+    const skullGroup = new THREE.Group()
     const skullBase = isMobile
-      ? { x: 0, y: 0.55, z: -0.5, s: 0.82 }
+      ? { x: 0, y: 0.55, z: -0.5, s: 0.78 }
       : { x: 2.1, y: 0.1, z: 0, s: 1 }
-    skull.group.position.set(skullBase.x, skullBase.y, skullBase.z)
-    skull.group.scale.setScalar(skullBase.s)
-    world.add(skull.group)
+    skullGroup.position.set(skullBase.x, skullBase.y, skullBase.z)
+    skullGroup.scale.setScalar(skullBase.s)
+    world.add(skullGroup)
 
-    // ---------- torus knot group (smaller, off to the side) ----------
-    const knotGroup = new THREE.Group()
-    knotGroup.position.set(isMobile ? 0 : -3.4, isMobile ? -2.7 : -1.5, -1)
-    knotGroup.scale.setScalar(isMobile ? 0.5 : 0.6)
-    world.add(knotGroup)
-
-    const knot = new THREE.Mesh(
-      new THREE.TorusKnotGeometry(1.5, 0.42, 220, 36),
+    // soft green halo behind the face
+    const haloCanvas = document.createElement('canvas')
+    haloCanvas.width = 256
+    haloCanvas.height = 256
+    const hg = haloCanvas.getContext('2d')
+    const grad = hg.createRadialGradient(128, 128, 8, 128, 128, 128)
+    grad.addColorStop(0, 'rgba(0, 255, 136, 0.55)')
+    grad.addColorStop(0.5, 'rgba(0, 255, 136, 0.14)')
+    grad.addColorStop(1, 'rgba(0, 255, 136, 0)')
+    hg.fillStyle = grad
+    hg.fillRect(0, 0, 256, 256)
+    const haloTex = new THREE.CanvasTexture(haloCanvas)
+    const halo = new THREE.Mesh(
+      new THREE.PlaneGeometry(6.4, 6.4),
       new THREE.MeshBasicMaterial({
-        color: 0x00ff88,
-        wireframe: true,
+        map: haloTex,
         transparent: true,
-        opacity: 0.34,
+        opacity: 0.5,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
       }),
     )
-    knotGroup.add(knot)
+    halo.position.z = -0.7
+    skullGroup.add(halo)
 
-    const core = new THREE.Mesh(
-      new THREE.IcosahedronGeometry(0.62, 1),
-      new THREE.MeshStandardMaterial({
-        color: 0x062b18,
-        emissive: 0x00ff88,
-        emissiveIntensity: 0.9,
-        flatShading: true,
-        metalness: 0.2,
-        roughness: 0.35,
+    const skullTex = new THREE.TextureLoader().load(SKULL_TEXTURE)
+    skullTex.colorSpace = THREE.SRGBColorSpace
+    skullTex.anisotropy = 4
+    const skullFace = new THREE.Mesh(
+      new THREE.PlaneGeometry(3.7, 3.7),
+      new THREE.MeshBasicMaterial({
+        map: skullTex,
+        transparent: true,
+        opacity: 0.96,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        side: THREE.DoubleSide,
       }),
     )
-    knotGroup.add(core)
-    const coreWire = new THREE.Mesh(
-      new THREE.IcosahedronGeometry(0.85, 1),
-      new THREE.MeshBasicMaterial({ color: 0x7dffc4, wireframe: true, transparent: true, opacity: 0.5 }),
-    )
-    knotGroup.add(coreWire)
+    skullGroup.add(skullFace)
 
-    const rings = []
-    for (const s of [
-      { r: 2.6, x: 0.4, z: 0.9 },
-      { r: 3.3, x: 1.2, z: -0.6 },
-    ]) {
-      const ring = new THREE.Mesh(
-        new THREE.TorusGeometry(s.r, 0.012, 8, 120),
-        new THREE.MeshBasicMaterial({ color: 0x00ff88, transparent: true, opacity: 0.4 }),
-      )
-      ring.rotation.x = s.x
-      ring.rotation.z = s.z
-      knotGroup.add(ring)
-      rings.push(ring)
-    }
-
-    // ---------- particle field (dimmer now — the skull is the star) ----------
+    // ---------- particle field ----------
     const P_COUNT = isMobile ? 700 : 1400
     const positions = new Float32Array(P_COUNT * 3)
     for (let i = 0; i < P_COUNT; i++) {
@@ -241,22 +133,6 @@ export default function ThreeScene() {
       }),
     )
     world.add(nebula)
-
-    // ---------- orbiting shards (around the knot) ----------
-    const SHARDS = isMobile ? 8 : 16
-    const shards = []
-    const shardGeo = new THREE.TetrahedronGeometry(0.16)
-    const shardMat = new THREE.MeshBasicMaterial({ color: 0x9dffd9, wireframe: true, transparent: true, opacity: 0.75 })
-    for (let i = 0; i < SHARDS; i++) {
-      const shard = new THREE.Mesh(shardGeo, shardMat)
-      const orbitR = 2.6 + Math.random() * 3.4
-      const speed = 0.12 + Math.random() * 0.25
-      const phase = Math.random() * Math.PI * 2
-      const yBase = (Math.random() - 0.5) * 3.4
-      shard.scale.setScalar(0.5 + Math.random() * 1.1)
-      world.add(shard)
-      shards.push({ mesh: shard, orbitR, speed, phase, yBase })
-    }
 
     // ---------- hologram planes (procedural canvas texture) ----------
     const makeHoloTexture = (text) => {
@@ -355,45 +231,21 @@ export default function ThreeScene() {
 
       const speed = reduced ? 0 : 1
 
-      // --- skull: turns toward you, follows the mouse, breathes ---
-      skull.group.rotation.y =
-        Math.sin(t * 0.25) * 0.12 + progress * 0.9 + pointer.x * 0.35
-      skull.group.rotation.x = pointer.y * 0.12 + Math.sin(t * 0.4) * 0.04
-      skull.group.position.y = skullBase.y + Math.sin(t * 0.8) * 0.06
-      const eyePulse = 1 + Math.sin(t * 2.4) * 0.18
-      skull.eyes.forEach((eye) => eye.scale.setScalar(eyePulse))
-      skull.faceLight.intensity = 5 + Math.sin(t * 2.4) * 2
+      // --- the face: turns toward you, follows the mouse, breathes ---
+      skullGroup.rotation.y =
+        Math.sin(t * 0.25) * 0.06 + progress * 0.7 + pointer.x * 0.3
+      skullGroup.rotation.x = pointer.y * 0.08 + Math.sin(t * 0.4) * 0.02
+      skullGroup.position.y = skullBase.y + Math.sin(t * 0.8) * 0.06
+      skullGroup.scale.setScalar(skullBase.s * (1 + Math.sin(t * 0.8) * 0.012))
+      halo.material.opacity = 0.42 + Math.sin(t * 1.3) * 0.1
 
-      // --- knot group idle motion ---
-      knot.rotation.x = t * 0.11 * speed
-      knot.rotation.y = t * 0.16 * speed
-      core.rotation.y = t * 0.5 * speed
-      core.rotation.x = t * 0.22 * speed
-      coreWire.rotation.y = -t * 0.35 * speed
-      coreWire.rotation.z = t * 0.18 * speed
+      // --- ambient motion ---
       nebula.rotation.y = t * 0.018 * speed
       nebula.rotation.x = Math.sin(t * 0.05) * 0.08
-      rings[0].rotation.z = t * 0.2 * speed
-      rings[1].rotation.z = -t * 0.14 * speed
-      rings[1].rotation.x = 1.2 + Math.sin(t * 0.2) * 0.15
-
-      for (const s of shards) {
-        const a = s.phase + t * s.speed * speed
-        s.mesh.position.set(
-          Math.cos(a) * s.orbitR + knotGroup.position.x * 0.4,
-          s.yBase + Math.sin(t * 0.7 + s.phase) * 0.35 + knotGroup.position.y * 0.4,
-          Math.sin(a) * s.orbitR,
-        )
-        s.mesh.rotation.x = t * 0.8 + s.phase
-        s.mesh.rotation.y = t * 0.6
-      }
       holos.forEach((h, i) => {
         h.position.y += Math.sin(t * 0.9 + i * 2.1) * 0.0012
         h.lookAt(camera.position)
       })
-
-      // pulse the key light
-      keyLight.intensity = 55 + Math.sin(t * 1.4) * 10
 
       renderer.render(scene, camera)
     }
@@ -405,12 +257,14 @@ export default function ThreeScene() {
       ro.disconnect()
       io.disconnect()
       window.removeEventListener('pointermove', onPointer)
+      skullTex.dispose()
+      haloTex.dispose()
       scene.traverse((obj) => {
         if (obj.geometry) obj.geometry.dispose()
         if (obj.material) {
           const mats = Array.isArray(obj.material) ? obj.material : [obj.material]
           mats.forEach((m) => {
-            if (m.map) m.map.dispose()
+            if (m.map && m.map !== skullTex && m.map !== haloTex) m.map.dispose()
             m.dispose()
           })
         }
