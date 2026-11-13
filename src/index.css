@@ -201,12 +201,12 @@ section { position: relative; padding: 110px 0; }
 .btn-primary:hover { box-shadow: 0 0 34px rgba(0, 255, 136, 0.45); }
 .btn-ghost { border-color: var(--line); color: var(--text); background: rgba(255, 255, 255, 0.02); }
 .btn-ghost:hover { border-color: var(--accent); background: var(--accent-soft); }
-.hero-stats { display: flex; gap: clamp(24px, 6vw, 72px); margin-top: 64px; flex-wrap: wrap; }
+.hero-stats { display: flex; gap: clamp(24px, 6vw, 72px); margin-top: 64px; margin-bottom: 56px; flex-wrap: wrap; }
 .stat b { font-size: clamp(1.7rem, 3.4vw, 2.4rem); font-weight: 700; display: block; letter-spacing: -0.02em; }
 .stat b em { font-style: normal; color: var(--accent); }
 .stat span { font-family: var(--mono); font-size: 0.75rem; letter-spacing: 0.16em; color: var(--muted); text-transform: uppercase; }
 .scroll-hint {
-  position: absolute; bottom: 28px; left: 50%; transform: translateX(-50%);
+  position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%);
   display: flex; flex-direction: column; align-items: center; gap: 8px;
   color: var(--muted); font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.28em;
   z-index: 2; animation: float-y 2.4s ease-in-out infinite;

@@ -6,10 +6,12 @@ import { SKULL_MODEL } from '../assets/skullModel'
 /**
  * Full-screen WebGL hero scene.
  * Centerpiece: a REAL 3D skull — an anatomically correct human skull
- * (CT-segmented, decimated in Blender to 30k triangles), not a photo.
- * It sits inside a dark balaclava hood; the face is actual geometry, with
- * real eye sockets, a nasal cavity and real teeth. Two glowing green eyes
- * sit inside the sockets. The head turns in 3D with scroll and mouse.
+ * (CT-segmented, decimated in Blender to 30k triangles), painted in Blender
+ * like Ghost's mask: stark white print with black eye sockets, nasal cavity
+ * and mouth interior. It sits inside a dark balaclava hood (fresnel shader,
+ * so the fabric silhouette glows green at the edges); the face is actual
+ * geometry, with real eye sockets, a nasal cavity and real teeth. Two glowing
+ * green eyes sit inside the sockets. The head turns in 3D with scroll/mouse.
  * Around it: a dim particle field and holograms.
  * Pauses when off-screen / tab hidden; reduced counts on mobile.
  */
@@ -76,23 +78,52 @@ export default function ThreeScene() {
       metalness: 0.1,
     })
 
-    // hood — the balaclava dome wrapping the back of the skull
-    const hood = new THREE.Mesh(new THREE.SphereGeometry(1.95, 48, 32), darkMat)
+    // hood — the balaclava dome wrapping the back of the skull.
+    // Fresnel shader: dark fabric in the middle, green glow at the grazing
+    // edges, so the balaclava silhouette reads against the black background.
+    const hoodMat = new THREE.ShaderMaterial({
+      uniforms: {
+        uColor: { value: new THREE.Color(0x0d0f0e) },
+        uRim: { value: new THREE.Color(0x00ff88) },
+      },
+      vertexShader: `
+        varying vec3 vNormal;
+        varying vec3 vView;
+        void main() {
+          vNormal = normalize(normalMatrix * normal);
+          vec4 mv = modelViewMatrix * vec4(position, 1.0);
+          vView = normalize(-mv.xyz);
+          gl_Position = projectionMatrix * mv;
+        }
+      `,
+      fragmentShader: `
+        uniform vec3 uColor;
+        uniform vec3 uRim;
+        varying vec3 vNormal;
+        varying vec3 vView;
+        void main() {
+          float f = pow(1.0 - abs(dot(normalize(vNormal), normalize(vView))), 2.5);
+          vec3 c = mix(uColor, uRim, f * 0.95);
+          gl_FragColor = vec4(c, 1.0);
+        }
+      `,
+    })
+    const hood = new THREE.Mesh(new THREE.SphereGeometry(1.95, 48, 32), hoodMat)
     hood.scale.set(1, 1.12, 0.85)
     hood.position.z = -0.35
     headGroup.add(hood)
 
-    // rim-glow shell — green halo outlining the head silhouette
+    // rim-glow shell — faint green halo just outside the hood silhouette
     const rimMat = new THREE.MeshBasicMaterial({
       color: 0x00ff88,
       transparent: true,
-      opacity: 0.2,
+      opacity: 0.22,
       blending: THREE.AdditiveBlending,
       side: THREE.BackSide,
       depthWrite: false,
     })
     const rim = new THREE.Mesh(new THREE.SphereGeometry(1.95, 48, 32), rimMat)
-    rim.scale.set(1.04, 1.16, 0.88)
+    rim.scale.set(1.02, 1.14, 0.87)
     rim.position.z = -0.35
     headGroup.add(rim)
 
@@ -121,12 +152,12 @@ export default function ThreeScene() {
       console.error('skull decode failed', err)
     }
 
-    // glowing eyes sitting inside the real sockets
+    // glowing eyes sitting inside the real sockets, right at the opening
     const eyeMat = new THREE.MeshBasicMaterial({ color: 0x00ff88 })
     const eyes = []
     for (const sx of [-1, 1]) {
-      const eye = new THREE.Mesh(new THREE.SphereGeometry(0.09, 16, 12), eyeMat)
-      eye.position.set(sx * 0.58, 0.51, 1.65)
+      const eye = new THREE.Mesh(new THREE.SphereGeometry(0.13, 16, 12), eyeMat)
+      eye.position.set(sx * 0.58, 0.55, 1.9)
       headGroup.add(eye)
       eyes.push(eye)
     }
@@ -194,7 +225,7 @@ export default function ThreeScene() {
     const holos = []
     for (const d of [
       { text: 'GHOST', x: 0, y: 3.3, z: -2.5, s: 0.9 },
-      { text: '0777', x: 0, y: -3.3, z: -3, s: 0.5 },
+      { text: '0777', x: 0, y: -3.7, z: -3, s: 0.45 },
     ]) {
       const plane = new THREE.Mesh(
         new THREE.PlaneGeometry(4.4 * d.s, 1.1 * d.s),
@@ -274,7 +305,7 @@ export default function ThreeScene() {
       headGroup.scale.setScalar(headBase.s * (1 + Math.sin(t * 0.8) * 0.012))
       const eyePulse = 1 + Math.sin(t * 2.4) * 0.15
       eyes.forEach((eye) => eye.scale.setScalar(eyePulse))
-      rimMat.opacity = 0.16 + Math.sin(t * 1.3) * 0.06
+      rimMat.opacity = 0.18 + Math.sin(t * 1.3) * 0.06
       faceLight.intensity = 5 + Math.sin(t * 2.4) * 2
 
       // --- ambient motion ---
