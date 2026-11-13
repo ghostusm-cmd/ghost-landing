@@ -1,3 +1,5 @@
+import { motion, useScroll, useSpring, useTransform, useVelocity } from 'framer-motion'
+
 const ITEMS = [
   'GHOST IN THE MACHINE',
   'CODE',
@@ -20,12 +22,17 @@ function Row() {
 }
 
 export default function Marquee() {
+  const { scrollY } = useScroll()
+  const velocity = useVelocity(scrollY)
+  const smoothVelocity = useSpring(velocity, { damping: 50, stiffness: 400 })
+  const skewX = useTransform(smoothVelocity, [-1400, 0, 1400], [-7, 0, 7])
+
   return (
     <div className="marquee" aria-hidden="true">
-      <div className="marquee-track">
+      <motion.div className="marquee-track" style={{ skewX }}>
         <Row />
         <Row />
-      </div>
+      </motion.div>
     </div>
   )
 }

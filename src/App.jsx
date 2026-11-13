@@ -5,6 +5,7 @@ import Hero from './components/Hero'
 import Marquee from './components/Marquee'
 import Operator from './components/Operator'
 import Projects from './components/Projects'
+import Vault from './components/Vault'
 import Terminal from './components/Terminal'
 import Arsenal from './components/Arsenal'
 import Footer from './components/Footer'
@@ -25,6 +26,7 @@ export default function App() {
         <Marquee />
         <Operator />
         <Projects />
+        <Vault />
         <Terminal />
         <Arsenal />
       </main>

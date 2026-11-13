@@ -29,6 +29,7 @@ export default function Navbar() {
         <nav className="nav-links">
           <a href="#operator">OPERATOR</a>
           <a href="#projects">PROJECTS</a>
+          <a href="#vault">VAULT</a>
           <a href="#terminal">TERMINAL</a>
           <a href="#arsenal">ARSENAL</a>
         </nav>

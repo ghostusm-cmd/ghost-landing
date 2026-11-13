@@ -1,7 +1,9 @@
-import { useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { animate, motion, useInView, useScroll, useTransform } from 'framer-motion'
 import { ArrowDown, Ghost, Sparkles } from 'lucide-react'
-import ParticleField from './ParticleField'
+
+// Three.js is heavy — split it out so the first paint stays fast on mobile.
+const ThreeScene = lazy(() => import('./ThreeScene'))
 
 const WORDS = [
   'Code, systems & deep dives.',
@@ -110,7 +112,9 @@ export default function Hero() {
 
   return (
     <section className="hero" id="top" ref={sectionRef}>
-      <ParticleField />
+      <Suspense fallback={null}>
+        <ThreeScene />
+      </Suspense>
       <div className="hero-glow" />
       <div className="hero-grid-bg" />
 
