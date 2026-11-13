@@ -184,8 +184,8 @@ export default function ThreeScene() {
     }
     const holos = []
     const holoDefs = [
-      { text: 'GHOST', y: 2.4, z: -2.5, s: 1 },
-      { text: '0777', y: -2.6, z: -3.5, s: 0.55 },
+      { text: 'GHOST', x: 0, y: 3.3, z: -2.5, s: 0.9 },
+      { text: '0777', x: 0, y: -3.3, z: -3, s: 0.5 },
     ]
     for (const d of holoDefs) {
       const plane = new THREE.Mesh(
@@ -193,13 +193,13 @@ export default function ThreeScene() {
         new THREE.MeshBasicMaterial({
           map: makeHoloTexture(d.text),
           transparent: true,
-          opacity: 0.85,
+          opacity: 0.7,
           blending: THREE.AdditiveBlending,
           depthWrite: false,
           side: THREE.DoubleSide,
         }),
       )
-      plane.position.set(-0.6, d.y, d.z)
+      plane.position.set(d.x, d.y, d.z)
       world.add(plane)
       holos.push(plane)
     }
