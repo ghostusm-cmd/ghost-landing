@@ -377,6 +377,7 @@ section { position: relative; padding: 110px 0; }
 .footer-giant:hover { -webkit-text-stroke: 1px rgba(0, 255, 136, 0.65); text-shadow: 0 0 60px rgba(0, 255, 136, 0.25); }
 .footer-row { display: flex; justify-content: space-between; align-items: center; gap: 20px; margin-top: 56px; flex-wrap: wrap; }
 .footer-row p { color: var(--muted); font-family: var(--mono); font-size: 0.8rem; letter-spacing: 0.06em; }
+.footer-credit { opacity: 0.6; font-size: 0.68rem !important; }
 .footer-links { display: flex; gap: 22px; font-family: var(--mono); font-size: 0.82rem; }
 .footer-links a { color: var(--muted); transition: color 0.2s; display: inline-flex; align-items: center; gap: 7px; }
 .footer-links a:hover { color: var(--accent); }

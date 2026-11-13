@@ -1,14 +1,16 @@
 import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
-import { SKULL_TEXTURE } from '../assets/skullTexture'
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
+import { SKULL_MODEL } from '../assets/skullModel'
 
 /**
  * Full-screen WebGL hero scene.
- * Centerpiece: a REAL 3D head — a dark hood sphere (the balaclava) with the
- * photorealistic skull face wrapped around a curved cylinder segment, so the
- * face has true depth and visibly turns in 3D when you scroll or move the
- * mouse. Glowing green eyes sit on the curved surface; a rim-glow shell
- * outlines the whole head. Around it: a dim particle field and holograms.
+ * Centerpiece: a REAL 3D skull — an anatomically correct human skull
+ * (CT-segmented, decimated in Blender to 30k triangles), not a photo.
+ * It sits inside a dark balaclava hood; the face is actual geometry, with
+ * real eye sockets, a nasal cavity and real teeth. Two glowing green eyes
+ * sit inside the sockets. The head turns in 3D with scroll and mouse.
+ * Around it: a dim particle field and holograms.
  * Pauses when off-screen / tab hidden; reduced counts on mobile.
  */
 export default function ThreeScene() {
@@ -74,9 +76,10 @@ export default function ThreeScene() {
       metalness: 0.1,
     })
 
-    // hood — the balaclava dome
-    const hood = new THREE.Mesh(new THREE.SphereGeometry(1.85, 48, 32), darkMat)
+    // hood — the balaclava dome wrapping the back of the skull
+    const hood = new THREE.Mesh(new THREE.SphereGeometry(1.95, 48, 32), darkMat)
     hood.scale.set(1, 1.12, 0.85)
+    hood.position.z = -0.35
     headGroup.add(hood)
 
     // rim-glow shell — green halo outlining the head silhouette
@@ -88,8 +91,9 @@ export default function ThreeScene() {
       side: THREE.BackSide,
       depthWrite: false,
     })
-    const rim = new THREE.Mesh(new THREE.SphereGeometry(1.85, 48, 32), rimMat)
+    const rim = new THREE.Mesh(new THREE.SphereGeometry(1.95, 48, 32), rimMat)
     rim.scale.set(1.04, 1.16, 0.88)
+    rim.position.z = -0.35
     headGroup.add(rim)
 
     // neck
@@ -97,33 +101,32 @@ export default function ThreeScene() {
     neck.position.y = -2.3
     headGroup.add(neck)
 
-    // face — the skull photo wrapped around a curved cylinder segment
-    // (crop the texture to the face band of the portrait)
-    const skullTex = new THREE.TextureLoader().load(SKULL_TEXTURE)
-    skullTex.colorSpace = THREE.SRGBColorSpace
-    skullTex.anisotropy = 4
-    skullTex.repeat.set(0.52, 0.48)
-    skullTex.offset.set(0.24, 0.25)
-    const face = new THREE.Mesh(
-      new THREE.CylinderGeometry(1.95, 1.85, 2.7, 48, 1, true, -1.0, 2.0),
-      new THREE.MeshStandardMaterial({
-        map: skullTex,
-        emissive: 0xffffff,
-        emissiveMap: skullTex,
-        emissiveIntensity: 0.3,
-        roughness: 0.6,
-        metalness: 0.05,
-        side: THREE.FrontSide,
-      }),
-    )
-    headGroup.add(face)
+    // --- the real skull (GLB, loaded from the embedded data URI) ---
+    const skullHolder = new THREE.Group()
+    skullHolder.position.set(0, 0.1, 0.3)
+    headGroup.add(skullHolder)
+    try {
+      const bin = atob(SKULL_MODEL.split(',')[1])
+      const bytes = new Uint8Array(bin.length)
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i)
+      new GLTFLoader().parse(
+        bytes.buffer,
+        '',
+        (gltf) => {
+          skullHolder.add(gltf.scene)
+        },
+        (err) => console.error('skull load failed', err),
+      )
+    } catch (err) {
+      console.error('skull decode failed', err)
+    }
 
-    // glowing eyes sitting on the curved surface
+    // glowing eyes sitting inside the real sockets
     const eyeMat = new THREE.MeshBasicMaterial({ color: 0x00ff88 })
     const eyes = []
     for (const sx of [-1, 1]) {
-      const eye = new THREE.Mesh(new THREE.SphereGeometry(0.08, 16, 12), eyeMat)
-      eye.position.set(sx * 0.8, 0.5, 1.72)
+      const eye = new THREE.Mesh(new THREE.SphereGeometry(0.09, 16, 12), eyeMat)
+      eye.position.set(sx * 0.58, 0.51, 1.65)
       headGroup.add(eye)
       eyes.push(eye)
     }
@@ -292,13 +295,12 @@ export default function ThreeScene() {
       ro.disconnect()
       io.disconnect()
       window.removeEventListener('pointermove', onPointer)
-      skullTex.dispose()
       scene.traverse((obj) => {
         if (obj.geometry) obj.geometry.dispose()
         if (obj.material) {
           const mats = Array.isArray(obj.material) ? obj.material : [obj.material]
           mats.forEach((m) => {
-            if (m.map && m.map !== skullTex) m.map.dispose()
+            if (m.map) m.map.dispose()
             m.dispose()
           })
         }
