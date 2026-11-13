@@ -34,7 +34,7 @@ const ITEMS = [
  * ring of arsenal cards rotates a full turn as you scroll through it.
  */
 export default function Vault() {
-  const [radius, setRadius] = useState(340)
+  const [radius, setRadius] = useState(406)
   const sectionRef = useRef(null)
 
   const { scrollYProgress } = useScroll({
@@ -43,14 +43,16 @@ export default function Vault() {
   })
   const ringScale = useTransform(scrollYProgress, [0, 0.15, 0.85, 1], [0.82, 1, 1, 0.82])
   const glowOpacity = useTransform(scrollYProgress, [0, 0.5, 1], [0.25, 1, 0.25])
-  const titleY = useTransform(scrollYProgress, [0, 1], [0, -60])
+  const titleY = useTransform(scrollYProgress, [0, 1], [0, -24])
   const smooth = useSpring(scrollYProgress, { stiffness: 90, damping: 22, mass: 0.5 })
   const smoothRotate = useTransform(smooth, [0, 1], [0, 360])
 
   useEffect(() => {
     const update = () => {
-      const w = Math.min(window.innerWidth, 1180)
-      setRadius(Math.max(190, Math.min(380, w * 0.36)))
+      // radius from card width so neighbours never overlap:
+      // radius = (cardWidth / 2) / tan(π / n) + gap, n = 12 cards
+      const card = window.innerWidth < 760 ? 168 : 208
+      setRadius(card / 2 / Math.tan(Math.PI / ITEMS.length) + 18)
     }
     update()
     window.addEventListener('resize', update)

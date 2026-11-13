@@ -455,7 +455,8 @@ section { position: relative; padding: 110px 0; }
   .marquee { padding: 15px 0; }
   .marquee-track span { font-size: 1.12rem; }
   .vault-track { height: 280vh; }
-  .ring-stage { height: 50vh; }
+  .vault-inner { justify-content: flex-start; padding-top: 88px; }
+  .ring-stage { height: 46vh; }
   .ring-card { width: 168px; height: 158px; margin: -79px 0 0 -84px; padding: 16px 12px; }
   .ring-card-icon { width: 44px; height: 44px; }
   .ring-card-label { font-size: 0.85rem; }
