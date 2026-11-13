@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
-import { animate, motion, useInView, useScroll, useTransform } from 'framer-motion'
+import { motion, useInView, useScroll, useTransform } from 'framer-motion'
 import { ArrowDown, Ghost, Sparkles } from 'lucide-react'
 
 // Three.js is heavy — split it out so the first paint stays fast on mobile.
@@ -47,12 +47,17 @@ function Counter({ to, suffix = '' }) {
 
   useEffect(() => {
     if (!inView) return
-    const controls = animate(0, to, {
-      duration: 1.8,
-      ease: 'easeOut',
-      onUpdate: (v) => setVal(Math.round(v)),
-    })
-    return () => controls.stop()
+    let raf = 0
+    const start = performance.now()
+    const dur = 1400
+    const step = (now) => {
+      const p = Math.min((now - start) / dur, 1)
+      const eased = 1 - Math.pow(1 - p, 3)
+      setVal(Math.round(eased * to))
+      if (p < 1) raf = requestAnimationFrame(step)
+    }
+    raf = requestAnimationFrame(step)
+    return () => cancelAnimationFrame(raf)
   }, [inView, to])
 
   return (

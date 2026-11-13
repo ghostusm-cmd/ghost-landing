@@ -4,10 +4,11 @@ import { SKULL_TEXTURE } from '../assets/skullTexture'
 
 /**
  * Full-screen WebGL hero scene.
- * Centerpiece: the real GHOST face — a photorealistic skull-mask portrait
- * on a plane with additive blending (black = transparent), so the mask
- * floats out of the dark like a hologram. It turns toward you with scroll
- * and follows the mouse. Around it: a dim particle field and hologram texts.
+ * Centerpiece: a REAL 3D head — a dark hood sphere (the balaclava) with the
+ * photorealistic skull face wrapped around a curved cylinder segment, so the
+ * face has true depth and visibly turns in 3D when you scroll or move the
+ * mouse. Glowing green eyes sit on the curved surface; a rim-glow shell
+ * outlines the whole head. Around it: a dim particle field and holograms.
  * Pauses when off-screen / tab hidden; reduced counts on mobile.
  */
 export default function ThreeScene() {
@@ -46,58 +47,89 @@ export default function ThreeScene() {
     )
     camera.position.set(0, 0, 9)
 
+    // ---------- lights ----------
+    scene.add(new THREE.AmbientLight(0xffffff, 0.35))
+    const keyLight = new THREE.PointLight(0xffffff, 40, 25, 1.6)
+    keyLight.position.set(4, 3, 6)
+    scene.add(keyLight)
+    const rimLight = new THREE.PointLight(0x00ff88, 25, 15, 1.8)
+    rimLight.position.set(-5, 0, 3)
+    scene.add(rimLight)
+
     const world = new THREE.Group()
     scene.add(world)
 
-    // ---------- GHOST face (photorealistic mask, additive = hologram) ----------
-    const skullGroup = new THREE.Group()
-    const skullBase = isMobile
-      ? { x: 0, y: 0.55, z: -0.5, s: 0.78 }
-      : { x: 2.1, y: 0.1, z: 0, s: 1 }
-    skullGroup.position.set(skullBase.x, skullBase.y, skullBase.z)
-    skullGroup.scale.setScalar(skullBase.s)
-    world.add(skullGroup)
+    // ---------- THE HEAD ----------
+    const headGroup = new THREE.Group()
+    const headBase = isMobile
+      ? { x: 0, y: 0.3, z: -0.5, s: 0.95 }
+      : { x: 2.1, y: 0.15, z: 0, s: 1 }
+    headGroup.position.set(headBase.x, headBase.y, headBase.z)
+    headGroup.scale.setScalar(headBase.s)
+    world.add(headGroup)
 
-    // soft green halo behind the face
-    const haloCanvas = document.createElement('canvas')
-    haloCanvas.width = 256
-    haloCanvas.height = 256
-    const hg = haloCanvas.getContext('2d')
-    const grad = hg.createRadialGradient(128, 128, 8, 128, 128, 128)
-    grad.addColorStop(0, 'rgba(0, 255, 136, 0.55)')
-    grad.addColorStop(0.5, 'rgba(0, 255, 136, 0.14)')
-    grad.addColorStop(1, 'rgba(0, 255, 136, 0)')
-    hg.fillStyle = grad
-    hg.fillRect(0, 0, 256, 256)
-    const haloTex = new THREE.CanvasTexture(haloCanvas)
-    const halo = new THREE.Mesh(
-      new THREE.PlaneGeometry(6.4, 6.4),
-      new THREE.MeshBasicMaterial({
-        map: haloTex,
-        transparent: true,
-        opacity: 0.5,
-        blending: THREE.AdditiveBlending,
-        depthWrite: false,
-      }),
-    )
-    halo.position.z = -0.7
-    skullGroup.add(halo)
+    const darkMat = new THREE.MeshStandardMaterial({
+      color: 0x0d0f0e,
+      roughness: 0.85,
+      metalness: 0.1,
+    })
 
+    // hood — the balaclava dome
+    const hood = new THREE.Mesh(new THREE.SphereGeometry(1.85, 48, 32), darkMat)
+    hood.scale.set(1, 1.12, 0.85)
+    headGroup.add(hood)
+
+    // rim-glow shell — green halo outlining the head silhouette
+    const rimMat = new THREE.MeshBasicMaterial({
+      color: 0x00ff88,
+      transparent: true,
+      opacity: 0.2,
+      blending: THREE.AdditiveBlending,
+      side: THREE.BackSide,
+      depthWrite: false,
+    })
+    const rim = new THREE.Mesh(new THREE.SphereGeometry(1.85, 48, 32), rimMat)
+    rim.scale.set(1.04, 1.16, 0.88)
+    headGroup.add(rim)
+
+    // neck
+    const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.85, 1.05, 1.4, 24), darkMat)
+    neck.position.y = -2.3
+    headGroup.add(neck)
+
+    // face — the skull photo wrapped around a curved cylinder segment
+    // (crop the texture to the face band of the portrait)
     const skullTex = new THREE.TextureLoader().load(SKULL_TEXTURE)
     skullTex.colorSpace = THREE.SRGBColorSpace
     skullTex.anisotropy = 4
-    const skullFace = new THREE.Mesh(
-      new THREE.PlaneGeometry(3.7, 3.7),
-      new THREE.MeshBasicMaterial({
+    skullTex.repeat.set(0.52, 0.48)
+    skullTex.offset.set(0.24, 0.25)
+    const face = new THREE.Mesh(
+      new THREE.CylinderGeometry(1.95, 1.85, 2.7, 48, 1, true, -1.0, 2.0),
+      new THREE.MeshStandardMaterial({
         map: skullTex,
-        transparent: true,
-        opacity: 0.96,
-        blending: THREE.AdditiveBlending,
-        depthWrite: false,
-        side: THREE.DoubleSide,
+        emissive: 0xffffff,
+        emissiveMap: skullTex,
+        emissiveIntensity: 0.3,
+        roughness: 0.6,
+        metalness: 0.05,
+        side: THREE.FrontSide,
       }),
     )
-    skullGroup.add(skullFace)
+    headGroup.add(face)
+
+    // glowing eyes sitting on the curved surface
+    const eyeMat = new THREE.MeshBasicMaterial({ color: 0x00ff88 })
+    const eyes = []
+    for (const sx of [-1, 1]) {
+      const eye = new THREE.Mesh(new THREE.SphereGeometry(0.08, 16, 12), eyeMat)
+      eye.position.set(sx * 0.8, 0.5, 1.72)
+      headGroup.add(eye)
+      eyes.push(eye)
+    }
+    const faceLight = new THREE.PointLight(0x00ff88, 6, 6, 1.8)
+    faceLight.position.set(0, 0.5, 3.2)
+    headGroup.add(faceLight)
 
     // ---------- particle field ----------
     const P_COUNT = isMobile ? 700 : 1400
@@ -231,13 +263,16 @@ export default function ThreeScene() {
 
       const speed = reduced ? 0 : 1
 
-      // --- the face: turns toward you, follows the mouse, breathes ---
-      skullGroup.rotation.y =
-        Math.sin(t * 0.25) * 0.06 + progress * 0.7 + pointer.x * 0.3
-      skullGroup.rotation.x = pointer.y * 0.08 + Math.sin(t * 0.4) * 0.02
-      skullGroup.position.y = skullBase.y + Math.sin(t * 0.8) * 0.06
-      skullGroup.scale.setScalar(skullBase.s * (1 + Math.sin(t * 0.8) * 0.012))
-      halo.material.opacity = 0.42 + Math.sin(t * 1.3) * 0.1
+      // --- the head: turns toward you, follows the mouse, breathes ---
+      headGroup.rotation.y =
+        Math.sin(t * 0.22) * 0.08 + progress * 0.85 + pointer.x * 0.38
+      headGroup.rotation.x = pointer.y * 0.1 + Math.sin(t * 0.33) * 0.03
+      headGroup.position.y = headBase.y + Math.sin(t * 0.8) * 0.06
+      headGroup.scale.setScalar(headBase.s * (1 + Math.sin(t * 0.8) * 0.012))
+      const eyePulse = 1 + Math.sin(t * 2.4) * 0.15
+      eyes.forEach((eye) => eye.scale.setScalar(eyePulse))
+      rimMat.opacity = 0.16 + Math.sin(t * 1.3) * 0.06
+      faceLight.intensity = 5 + Math.sin(t * 2.4) * 2
 
       // --- ambient motion ---
       nebula.rotation.y = t * 0.018 * speed
@@ -258,13 +293,12 @@ export default function ThreeScene() {
       io.disconnect()
       window.removeEventListener('pointermove', onPointer)
       skullTex.dispose()
-      haloTex.dispose()
       scene.traverse((obj) => {
         if (obj.geometry) obj.geometry.dispose()
         if (obj.material) {
           const mats = Array.isArray(obj.material) ? obj.material : [obj.material]
           mats.forEach((m) => {
-            if (m.map && m.map !== skullTex && m.map !== haloTex) m.map.dispose()
+            if (m.map && m.map !== skullTex) m.map.dispose()
             m.dispose()
           })
         }
